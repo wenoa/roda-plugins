@@ -13,8 +13,20 @@ RSpec.describe("simple_responses plugin") {
           r.post("absolute") { r.created("/resources/42") }
           r.post("relative") { r.created("7", relative: true) }
           r.post("with-headers") { r.created("/resources/42", headers: { "x-custom" => "value" }) }
+          r.post("with-response-header") {
+            response["x-custom"] = "value"
+            r.created("/resources/42")
+          }
+          r.post("with-response-location") {
+            response["location"] = "/resources/7"
+            r.created("/resources/42")
+          }
           r.post("plain") { r.created }
           r.delete("gone") { r.deleted }
+          r.delete("with-response-header") {
+            response["x-custom"] = "value"
+            r.deleted
+          }
         }
 
         r.get("invalid") { r.bad_request("invalid payload") }
@@ -47,6 +59,20 @@ RSpec.describe("simple_responses plugin") {
       expect(last_response.headers["location"]).to eq("/resources/42")
     }
 
+    it("keeps the headers the route already set on the response") {
+      post "/resources/with-response-header"
+
+      expect(last_response.status).to eq(201)
+      expect(last_response.headers["x-custom"]).to eq("value")
+    }
+
+    it("gives precedence to its own headers over the ones the route already set") {
+      post "/resources/with-response-location"
+
+      expect(last_response.status).to eq(201)
+      expect(last_response.headers["location"]).to eq("/resources/42")
+    }
+
     it("omits the location header when no resource path is given") {
       post "/resources/plain"
 
@@ -61,6 +87,13 @@ RSpec.describe("simple_responses plugin") {
 
       expect(last_response.status).to eq(204)
       expect(last_response.body).to be_empty
+    }
+
+    it("keeps the headers the route already set on the response") {
+      delete "/resources/with-response-header"
+
+      expect(last_response.status).to eq(204)
+      expect(last_response.headers["x-custom"]).to eq("value")
     }
   }
 

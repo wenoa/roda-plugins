@@ -8,7 +8,7 @@ class Roda
           unless path_to_resource.to_s.empty?
             headers["location"] = relative ? File.join(path, path_to_resource) : path_to_resource
           end
-          throw :halt, [201, headers, []]
+          throw :halt, [201, response.headers.merge(headers), []]
         end
 
         def bad_request(body)
@@ -22,7 +22,7 @@ class Roda
         end
 
         def deleted
-          throw :halt, [204, {}, []]
+          throw :halt, [204, response.headers, []]
         end
       end
     end
