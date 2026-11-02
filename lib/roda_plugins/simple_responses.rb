@@ -3,12 +3,17 @@ require "roda"
 class Roda
   module RodaPlugins
     module SimpleResponses
+      def self.load_dependencies(app, _opts = {})
+        app.plugin :halt
+      end
+
       module RequestMethods
         def created(path_to_resource = "", headers: {}, relative: false)
           unless path_to_resource.to_s.empty?
             headers["location"] = relative ? File.join(path, path_to_resource) : path_to_resource
           end
-          throw :halt, [201, response.headers.merge(headers), []]
+          response.headers.merge!(headers)
+          halt(201)
         end
 
         def bad_request(body)
@@ -22,7 +27,7 @@ class Roda
         end
 
         def deleted
-          throw :halt, [204, response.headers, []]
+          halt(204)
         end
       end
     end
