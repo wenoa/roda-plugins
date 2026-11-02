@@ -17,13 +17,11 @@ class Roda
         end
 
         def bad_request(body)
-          response.status = 400
-          response.write(body)
+          halt(400, body)
         end
 
         def not_found(body)
-          response.status = 404
-          response.write(body)
+          halt(404, body)
         end
 
         def deleted

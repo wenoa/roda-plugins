@@ -30,7 +30,19 @@ RSpec.describe("simple_responses plugin") {
         }
 
         r.get("invalid") { r.bad_request("invalid payload") }
+        r.get("invalid-and-more") {
+          r.bad_request("invalid payload")
+          # :nocov:
+          response.write(" and more")
+          # :nocov:
+        }
         r.get("missing") { r.not_found("nothing here") }
+        r.get("missing-and-more") {
+          r.not_found("nothing here")
+          # :nocov:
+          response.write(" and more")
+          # :nocov:
+        }
       }
     }
   }
@@ -104,11 +116,25 @@ RSpec.describe("simple_responses plugin") {
       expect(last_response.status).to eq(400)
       expect(last_response.body).to eq("invalid payload")
     }
+
+    it("stops running the route") {
+      get "/invalid-and-more"
+
+      expect(last_response.status).to eq(400)
+      expect(last_response.body).to eq("invalid payload")
+    }
   }
 
   describe("#not_found") {
     it("returns 404 with the given body") {
       get "/missing"
+
+      expect(last_response.status).to eq(404)
+      expect(last_response.body).to eq("nothing here")
+    }
+
+    it("stops running the route") {
+      get "/missing-and-more"
 
       expect(last_response.status).to eq(404)
       expect(last_response.body).to eq("nothing here")
