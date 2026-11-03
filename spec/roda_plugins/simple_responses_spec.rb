@@ -13,12 +13,36 @@ RSpec.describe("simple_responses plugin") {
           r.post("absolute") { r.created("/resources/42") }
           r.post("relative") { r.created("7", relative: true) }
           r.post("with-headers") { r.created("/resources/42", headers: { "x-custom" => "value" }) }
+          r.post("with-response-header") {
+            response["x-custom"] = "value"
+            r.created("/resources/42")
+          }
+          r.post("with-response-location") {
+            response["location"] = "/resources/7"
+            r.created("/resources/42")
+          }
           r.post("plain") { r.created }
           r.delete("gone") { r.deleted }
+          r.delete("with-response-header") {
+            response["x-custom"] = "value"
+            r.deleted
+          }
         }
 
         r.get("invalid") { r.bad_request("invalid payload") }
+        r.get("invalid-and-more") {
+          r.bad_request("invalid payload")
+          # :nocov:
+          response.write(" and more")
+          # :nocov:
+        }
         r.get("missing") { r.not_found("nothing here") }
+        r.get("missing-and-more") {
+          r.not_found("nothing here")
+          # :nocov:
+          response.write(" and more")
+          # :nocov:
+        }
       }
     }
   }
@@ -47,6 +71,20 @@ RSpec.describe("simple_responses plugin") {
       expect(last_response.headers["location"]).to eq("/resources/42")
     }
 
+    it("keeps the headers the route already set on the response") {
+      post "/resources/with-response-header"
+
+      expect(last_response.status).to eq(201)
+      expect(last_response.headers["x-custom"]).to eq("value")
+    }
+
+    it("gives precedence to its own headers over the ones the route already set") {
+      post "/resources/with-response-location"
+
+      expect(last_response.status).to eq(201)
+      expect(last_response.headers["location"]).to eq("/resources/42")
+    }
+
     it("omits the location header when no resource path is given") {
       post "/resources/plain"
 
@@ -62,6 +100,13 @@ RSpec.describe("simple_responses plugin") {
       expect(last_response.status).to eq(204)
       expect(last_response.body).to be_empty
     }
+
+    it("keeps the headers the route already set on the response") {
+      delete "/resources/with-response-header"
+
+      expect(last_response.status).to eq(204)
+      expect(last_response.headers["x-custom"]).to eq("value")
+    }
   }
 
   describe("#bad_request") {
@@ -71,11 +116,25 @@ RSpec.describe("simple_responses plugin") {
       expect(last_response.status).to eq(400)
       expect(last_response.body).to eq("invalid payload")
     }
+
+    it("stops running the route") {
+      get "/invalid-and-more"
+
+      expect(last_response.status).to eq(400)
+      expect(last_response.body).to eq("invalid payload")
+    }
   }
 
   describe("#not_found") {
     it("returns 404 with the given body") {
       get "/missing"
+
+      expect(last_response.status).to eq(404)
+      expect(last_response.body).to eq("nothing here")
+    }
+
+    it("stops running the route") {
+      get "/missing-and-more"
 
       expect(last_response.status).to eq(404)
       expect(last_response.body).to eq("nothing here")
